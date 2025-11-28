@@ -71,126 +71,26 @@ const SessionPlayer = ({ technique, onClose, onComplete }) => {
         const ctx = new AudioContext();
         audioContextRef.current = ctx;
 
-        // Master Gain
         const masterGain = ctx.createGain();
-        masterGain.gain.value = 0.3;
+        masterGain.gain.value = 0.1; // Low volume
         masterGain.connect(ctx.destination);
         gainNodeRef.current = masterGain;
 
-        // --- 1. Cathedral Reverb (Impulse Response) ---
-        const reverb = ctx.createConvolver();
-        const duration = 4; // 4 seconds reverb
-        const decay = 4;
-        const rate = ctx.sampleRate;
-        const length = rate * duration;
-        const impulse = ctx.createBuffer(2, length, rate);
-        const left = impulse.getChannelData(0);
-        const right = impulse.getChannelData(1);
+        // Create oscillators for "Om" (C# approx 136.1 Hz - Earth Year frequency)
+        const freqs = [136.1, 272.2]; // Fundamental + Octave
 
-        for (let i = 0; i < length; i++) {
-            const n = i / length;
-            // Exponential decay noise
-            left[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
-            right[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
-        }
-        reverb.buffer = impulse;
-        reverb.connect(masterGain);
-
-        // --- 2. Deep Throat Singing Drone (Sawtooth + Lowpass) ---
-        // Base frequency: 68.05 Hz (Low C# approx, 432Hz ref)
-        const baseFreq = 68.05;
-
-        // Voice 1: Deep Sawtooth (The "Throat" texture)
-        const throatOsc = ctx.createOscillator();
-        throatOsc.type = 'sawtooth';
-        throatOsc.frequency.value = baseFreq;
-
-        const throatFilter = ctx.createBiquadFilter();
-        throatFilter.type = 'lowpass';
-        throatFilter.frequency.value = 180; // Cut off high buzz
-        throatFilter.Q.value = 1;
-
-        const throatGain = ctx.createGain();
-        throatGain.gain.value = 0.15;
-
-        throatOsc.connect(throatFilter);
-        throatFilter.connect(throatGain);
-        throatGain.connect(reverb); // Send to reverb
-        throatGain.connect(masterGain); // And direct
-
-        oscillatorsRef.current.push(throatOsc);
-        throatOsc.start();
-
-        // Voice 2: Sub Sine (The "Body")
-        const subOsc = ctx.createOscillator();
-        subOsc.type = 'sine';
-        subOsc.frequency.value = baseFreq;
-
-        const subGain = ctx.createGain();
-        subGain.gain.value = 0.2;
-
-        subOsc.connect(subGain);
-        subGain.connect(masterGain); // Direct only (keep sub clean)
-
-        oscillatorsRef.current.push(subOsc);
-        subOsc.start();
-
-        // Voice 3: Fifth Harmonic (The "Overtone")
-        const harmOsc = ctx.createOscillator();
-        harmOsc.type = 'sine';
-        harmOsc.frequency.value = baseFreq * 1.5; // Fifth
-
-        const harmGain = ctx.createGain();
-        harmGain.gain.value = 0.05;
-
-        harmOsc.connect(harmGain);
-        harmGain.connect(reverb);
-
-        oscillatorsRef.current.push(harmOsc);
-        harmOsc.start();
-
-        // --- 3. Crackling Texture (Brown Noise) ---
-        const bufferSize = 2 * ctx.sampleRate;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let lastOut = 0; // Initialize lastOut before the loop
-        for (let i = 0; i < bufferSize; i++) {
-            const white = Math.random() * 2 - 1;
-            output[i] = (lastOut + (0.02 * white)) / 1.02;
-            lastOut = output[i];
-            output[i] *= 3.5; // Compensate for gain loss
-        }
-
-        const noiseSrc = ctx.createBufferSource();
-        noiseSrc.buffer = noiseBuffer;
-        noiseSrc.loop = true;
-
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 500; // Remove rumble
-
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.value = 0.02; // Very subtle
-
-        noiseSrc.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(reverb);
-
-        oscillatorsRef.current.push(noiseSrc); // Add to cleanup list
-        noiseSrc.start();
+        freqs.forEach(freq => {
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.connect(masterGain);
+            osc.start();
+            oscillatorsRef.current.push(osc);
+        });
     };
 
     const stopDrone = () => {
-        oscillatorsRef.current.forEach(node => {
-            try {
-                // Check if the node has a stop method (e.g., OscillatorNode, AudioBufferSourceNode)
-                if (typeof node.stop === 'function') {
-                    node.stop();
-                }
-            } catch (e) {
-                console.error("Error stopping audio node:", e);
-            }
-        });
+        oscillatorsRef.current.forEach(osc => osc.stop());
         oscillatorsRef.current = [];
         if (audioContextRef.current) {
             audioContextRef.current.close();

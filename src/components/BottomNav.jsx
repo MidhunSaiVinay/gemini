@@ -10,16 +10,18 @@ const BottomNav = () => {
     ];
 
     return (
-        <nav className="glass-panel" style={{
+        <nav style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
-            height: '80px',
+            height: '60px',
+            backgroundColor: 'var(--bg-secondary)',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
             display: 'flex',
             justifyContent: 'space-around',
             alignItems: 'center',
-            paddingBottom: '20px', // Safe area for mobile
+            backdropFilter: 'blur(10px)',
             zIndex: 100
         }}>
             {navItems.map(({ path, icon: Icon, label }) => (
@@ -34,15 +36,13 @@ const BottomNav = () => {
                         textDecoration: 'none',
                         color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
                         fontSize: '0.75rem',
-                        gap: '6px',
-                        padding: '12px',
-                        transition: 'all 0.3s ease',
-                        opacity: isActive ? 1 : 0.6,
-                        transform: isActive ? 'scale(1.1)' : 'scale(1)'
+                        gap: '4px',
+                        padding: '8px',
+                        transition: 'color 0.2s ease'
                     })}
                 >
-                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                    <span style={{ fontWeight: isActive ? 600 : 400 }}>{label}</span>
+                    <Icon size={24} />
+                    <span>{label}</span>
                 </NavLink>
             ))}
         </nav>
